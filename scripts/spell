@@ -25,7 +25,7 @@ known_spells=(
 )
 text=${1}
 lang=en
-dict="${root_dir}/.dict"
+dict="./.dict"
 good="^[\*\+]"
 bad="^&"
 invalid=()
