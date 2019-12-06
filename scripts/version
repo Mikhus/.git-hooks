@@ -1,0 +1,59 @@
+#!/bin/bash
+# ISC License
+#
+# Copyright (c) 2019-present, Mykhailo Stadnyk <mikhus@gmail.com>
+#
+# Permission to use, copy, modify, and/or distribute this software for any
+# purpose with or without fee is hereby granted, provided that the above
+# copyright notice and this permission notice appear in all copies.
+#
+# THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+# WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+# MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+# ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+# WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+# ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+# OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+VERSION=`git describe --tags`
+RX_VERSION="^v([0-9]+)\.([0-9]+)\.([0-9]+)(-([^-+]+))?([-+](.+))?"
+
+if [[ ${VERSION} =~ $RX_VERSION ]]; then
+    major=${BASH_REMATCH[1]}
+    minor=${BASH_REMATCH[2]}
+    patch=${BASH_REMATCH[3]}
+    prerelease=${BASH_REMATCH[5]}
+    build=${BASH_REMATCH[8]}
+
+    case $1 in
+        major)
+            major=$(( $major + 1 ))
+            minor=0
+            patch=0
+            prerelease=""
+            ;;
+        minor)
+            minor=$(( $minor + 1 ))
+            patch=0
+            prerelease=""
+            ;;
+        patch)
+            patch=$(( $patch + 1 ))
+            prerelease=""
+            ;;
+        prerelease)
+    	    if [[ ${prerelease} = "" ]]; then
+    	        prerelease=-0
+    	    else
+                prerelease=-$(( $prerelease + 1 ))
+            fi
+            ;;
+        *) # Print version and exit
+            echo ${VERSION}
+            exit 0
+            ;;
+    esac
+
+    VERSION="v${major}.${minor}.${patch}${prerelease}"
+fi
+
+echo ${VERSION}

@@ -1,0 +1,87 @@
+#!/bin/bash
+# ISC License
+#
+# Copyright (c) 2019-present, Mykhailo Stadnyk <mikhus@gmail.com>
+#
+# Permission to use, copy, modify, and/or distribute this software for any
+# purpose with or without fee is hereby granted, provided that the above
+# copyright notice and this permission notice appear in all copies.
+#
+# THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+# WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+# MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+# ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+# WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+# ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+# OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+root_dir="$(readlink -f "$(dirname "$(readlink -f "${0}")")"/..)"
+import="$(readlink -f "${root_dir}/scripts")"
+min_words=3
+
+source "${import}/common"
+
+commit_message=`cat ${1} | grep -E "^[^#\n]"`
+first=`head -n1 ${1}`
+allowed="feat|fix|docs|style|refactor|perf|test|chore"
+pattern="^(${allowed}):( (\[[-A-Za-z0-9]+\]))? (.+)$"
+
+echo "Commit message was:"
+echo -e "\n$(gre)${commit_message}$(def)\n"
+
+usage() {
+    echo "$(red)Bad commit message!$(def)"
+    echo "Correct format is: $(cya)tag: [BUG_ID] Message$(def)"
+    echo "Allowed tags:"
+
+    IFS="|" read -ra items <<< ${allowed}
+    for item in "${items[@]}"; do
+        echo " - $(gre)${item}$(def)"
+    done
+
+    echo "[JIRA_ID] is optional, but recommended."
+    echo "Message can not be empty!"
+}
+
+if ! [[ ${first} =~ ${pattern} ]]; then
+    usage ; exit 1
+fi
+
+msg=$(trim "${BASH_REMATCH[4]}")
+bug_id=$(trim "${BASH_REMATCH[3]}")
+
+if [[ ${msg} = "" ]]; then
+    usage ; exit 1
+fi
+
+spell_check "${commit_message}"
+
+words_count=`wc -w <<< "${msg}"`; if [[ ${words_count} < ${min_words} ]]; then
+    echo "$(
+        red)Error: Not enough words, please, describe your commit better...$(
+        def)"
+    exit 1
+fi
+
+if [[ ${bug_id} = "" ]]; then
+    echo "$(red)Warning:$(yel) bug-tracking identifier is missing...$(def)"
+    printf "%s: " "Proceed with commit ($(
+        yel)y$(def)) or abort ($(
+        gre)n$(def))?"
+
+    while true; do
+        exec < /dev/tty
+        read answer
+        shopt -s nocasematch
+        case "$answer" in
+            y|yes)
+                exit 0;;
+            n|no)
+                echo "Aborted!"
+                exit 1;;
+            *)
+            printf "%s\n" "$(red)Incorrect answer. Try again.$(def)"
+            continue
+        esac
+        shopt -u nocasematch
+    done
+fi

@@ -1,0 +1,86 @@
+#!/bin/bash
+# ISC License
+#
+# Copyright (c) 2019-present, Mykhailo Stadnyk <mikhus@gmail.com>
+#
+# Permission to use, copy, modify, and/or distribute this software for any
+# purpose with or without fee is hereby granted, provided that the above
+# copyright notice and this permission notice appear in all copies.
+#
+# THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+# WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+# MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+# ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+# WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+# ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+# OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+root_dir="$(readlink -f "$(dirname "$(readlink -f "${0}")")"/..)"
+git_version_string=`git --version`
+git_version=${git_version_string:12}
+hooks_src="${root_dir}/hooks"
+hooks_enabled="${hooks_src}.enabled"
+
+if ! [[ -d "${hooks_src}" ]]; then
+  echo "Unable to locate git hooks sources!"
+  exit 1
+fi
+
+compare_version() {
+    if [[ $1 == $2 ]]; then
+        return 0
+    fi
+
+    local IFS=.
+    local i ver1=($1) ver2=($2)
+
+    for ((i=${#ver1[@]}; i<${#ver2[@]}; i++)); do
+        ver1[i]=0
+    done
+
+    for ((i=0; i<${#ver1[@]}; i++)); do
+        if [[ -z ${ver2[i]} ]]; then
+            ver2[i]=0
+        fi
+
+        if ((10#${ver1[i]} > 10#${ver2[i]})); then
+            return 1
+        fi
+
+        if ((10#${ver1[i]} < 10#${ver2[i]})); then
+            return 2
+        fi
+    done
+
+    return 0
+}
+
+rm -rf ${hooks_enabled} 2>/dev/null
+mkdir -p ${hooks_enabled}; exit_code=$?
+
+if [[ ${exit_code} -ne 0 ]]; then
+    echo "Error: can not create ${hooks_enabled}"
+    exit 1
+fi
+
+if [[ ${#@} -eq 0 ]]; then
+    for file in ${hooks_src}/*; do
+        ln -s "${file}" "${hooks_enabled}/$(printf '%s\n' "${file##*/}")"
+    done
+else
+    for file in $@; do
+        if ! [[ -f ${hooks_src}/${file} ]]; then
+            echo "Error: No such hook exists: $file"
+            exit 1
+        fi
+
+        ln -s "${hooks_src}/${file}" "${hooks_enabled}/${file}"
+    done
+fi
+
+compare_version "2.9" ${git_version}; if [[ $? = 2 ]]; then
+    git config --local core.hooksPath "${hooks_enabled}"
+else
+    for file in ${hooks_enabled}/*; do
+        ln -s -f "${file}" ".git/hooks/$(printf '%s\n' "${file##*/}")"
+    done
+fi

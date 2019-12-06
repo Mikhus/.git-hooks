@@ -1,0 +1,218 @@
+#!/bin/bash
+# ISC License
+#
+# Copyright (c) 2019-present, Mykhailo Stadnyk <mikhus@gmail.com>
+#
+# Permission to use, copy, modify, and/or distribute this software for any
+# purpose with or without fee is hereby granted, provided that the above
+# copyright notice and this permission notice appear in all copies.
+#
+# THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+# WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+# MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+# ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+# WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+# ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+# OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+root_dir="$(readlink -f "$(dirname "$(readlink -f "${0}")")"/..)"
+import="$(readlink -f "${root_dir}/scripts")"
+
+source "${import}/common"
+
+known_spells=(
+    "aspell"
+    "hunspell"
+)
+text=${1}
+lang=en
+dict="${root_dir}/.dict"
+good="^[\*\+]"
+bad="^&"
+invalid=()
+spell=""
+call_type=${2}
+ignores=()
+ignores=$(cat "${dict}" 2>/dev/null | sort -u)
+rx_aspell="^aspell"
+
+make_dict() {
+    rm "${dict}" 2>/dev/null
+
+    IFS=$'\n' ignores=($(sort -u <<<"${ignores[*]}")); unset IFS
+
+    for word in ${ignores[@]}; do
+        echo "$word" >> "$dict"
+    done
+
+    # this required by aspell
+    if [[ "${spell}" =~ $rx_aspell ]]; then
+        if [[ -f "$dict" ]]; then
+            rm "${dict}.prepl" 2>/dev/null
+            aspell --dont-clean-words \
+                --lang=${lang} \
+                create master \
+                "${dict}.prepl" \
+                2>/dev/null < "${dict}"
+        fi
+    fi
+}
+
+spell_args() {
+    case $1 in
+        hunspell)
+            printf "%s" "-al -d ${lang} -p ${dict} -i utf-8";;
+        aspell)
+            printf "%s" "-a -l ${lang} -p ${dict}.prepl--encoding=utf-8"
+            ;;
+    esac
+}
+
+locate_spell() {
+    for cmd in ${known_spells[@]}; do
+        command_exists ${cmd}
+
+        if [[ $? = 1 ]]; then
+            spell="${cmd} $(spell_args ${cmd})"
+            break
+        fi
+    done
+
+    if [[ ${spell} = "" ]]; then
+        echo "No spell check program found.
+You need to consider installing one of ($(
+        join , known_spells[@])) on your system."
+            exit 1
+    fi
+}
+
+locate_spell
+make_dict
+
+wrong_answer() { echo "$(red)Incorrect answer. Try again.$(def)"; }
+please_fix() { echo "Please fix remaining typos and try again."; }
+
+process_mistake() {
+    i=0
+    wrong=""
+    col=0
+
+    for part in $@; do
+        case ${i} in
+            2)
+                wrong=${part};;
+            4)
+                col=${part};;
+        esac
+
+        i=$(( $i + 1 ))
+    done
+
+    invalid+=("${wrong}")
+
+    if [[ ${call_type} = "git" ]]; then
+        grep \
+            --color=always \
+            --exclude-dir='{.git,tmp}' \
+            -HIrone "\<$wrong\>" \
+            $(git diff --cached --name-only --diff-filter=ACMRTUXB) | \
+            awk -F ":" '{print "File: " $1 "\ton line: " $2 "\tTypo: " $3}'
+    else
+        echo -e "$(
+            yel)Typo$(def) in commit message at $(
+            cya)line: ${1}, position: ${col}$(def)\t$(
+            red)${wrong}$(def)"
+    fi
+}
+
+add_words_to_dict() {
+    printf "%s
+Add any of the misspelled words into your project-level dictionary?
+  * a[ll]     (add all words into dict and proceed)
+  * s[ome]    (add some words into dict, ignore rest and abort)
+  * n[one]    (abort)
+"
+
+    while true; do
+        exec < /dev/tty
+        read answer
+        shopt -s nocasematch
+        case "$answer" in
+            a|all)
+                add_all
+                exit 0;;
+            s|some)
+                add_some
+                exit 1;;
+            n|none)
+                add_none
+                exit 1;;
+            *)
+                wrong_answer
+                continue;;
+        esac
+        shopt -u nocasematch
+    done
+}
+
+add_all() {
+    for word in ${invalid[@]}; do
+        ignores+=("$word")
+    done
+
+    make_dict
+}
+
+add_some() {
+    for word in ${invalid[@]}; do
+        printf "%s
+Add the following word to project-level dictionary: $word?  (y[es] or n[o])"
+        while true; do
+            exec < /dev/tty
+            read answer
+            shopt -s nocasematch
+            case "$answer" in
+                y|yes)
+                    ignores+=("$word")
+                    printf "%s\n" "\"$word\" added to project-level dictionary."
+                    break ;;
+                n|no)
+                    break ;;
+                *)
+                    wrong_answer
+                    continue;;
+            esac
+            shopt -u nocasematch
+        done
+    done
+
+    make_dict
+    please_fix
+}
+
+add_none() {
+    echo "No words were added to project-level dictionary."
+    please_fix
+}
+
+check=$(echo -e "${text}" | ${spell})
+curr=1
+
+while IFS= read -r line; do
+    if [[ "${line}" =~ ${good} ]]; then
+        continue
+    fi
+
+    if [[ "${line}" = "" ]]; then
+        curr=$(( curr + 1 ))
+        continue
+    fi
+
+    if [[ "${line}" =~ ${bad} ]]; then
+        process_mistake "${curr}" "${line}"
+    fi
+done < <(printf '%s\n' "${check}")
+
+if [[ ${#invalid[@]} -gt 0 ]]; then
+    echo "Number of errors: ${#invalid[@]}"
+    add_words_to_dict
+fi
