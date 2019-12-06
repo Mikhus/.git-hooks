@@ -83,6 +83,43 @@ published, but that may be achieved only with installing server-side hooks and
 that option is not always available, so having at least this kind of protection
 is better than nothing.
 
+## Scripts
+
+This is not only hooks repo. There are couple of other useful scripts delivered
+under `script` directory
+  
+  - `init/reset` - already described, them are used to disable/enable hooks
+  - `spell` - mostly used to perform spell-checking of the given input. Accepts
+    two arguments - string (or multiline string) input and verification type.
+    Second one is optional, but relies on a git work directory, so will try
+    to find all the places where misspelled words in a current commit diff.
+    With a single argument would treat it as a commit message, but who prevents
+    of using it in other ways, or in another hooks? Examples:
+    ~~~bash
+    ./.git-hooks/scripts/spell "Wht wng with you?"
+    ./.git-hooks/scripts/version "$(git diff --cached | grep -e "^+[^+]")" "git"
+    ~~~
+  - `version` - assumes your git repository uses semantic version tagging
+    for your releases. If so, may help to determine semantic version of
+    current commit or to build the next release version tag, for example:
+    ~~~bash
+    # get current version
+    ./.git-hooks/scripts/version
+    # get next prerelease version
+    ./.git-hooks/scripts/version prerelease
+    # get next patch version
+    ./.git-hooks/scripts/version patch
+    # get next minor version
+    ./.git-hooks/scripts/version minor
+    # get next major version
+    ./.git-hooks/scripts/version major
+    ~~~
+    It is safe to run as it does not modify your repository. This could be 
+    useless on NPM based developments, but can be dramatically helpful in many
+    other cases.
+
 ## License
 
 [ISC](https://rawgit.com/Mikhus/.git-hooks/master/LICENSE)
+
+Happy Coding!
