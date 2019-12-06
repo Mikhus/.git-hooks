@@ -70,8 +70,8 @@ Or in your `package.json`
   "name": "my-cool-project",
   "version": "1.0.0",
   "scripts": {
-    "start": ".git-hooks/scripts/init ; /usr/bin/env node ./index.js",
-    "install": ".git-hooks/scripts"
+    "start": "./.git-hooks/scripts/init ; /usr/bin/env node ./index.js",
+    "install": "./.git-hooks/scripts/init"
   }
 }
 ~~~
