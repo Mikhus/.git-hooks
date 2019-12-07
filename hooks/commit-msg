@@ -38,7 +38,7 @@ usage() {
         echo " - $(gre)${item}$(def)"
     done
 
-    echo "[JIRA_ID] is optional, but recommended."
+    echo "[BUG_ID] is optional, but recommended."
     echo "Message can not be empty!"
 }
 
