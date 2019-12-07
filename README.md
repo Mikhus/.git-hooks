@@ -21,7 +21,7 @@ manually.
 You may install this repository as a submodule of your repo or simply clone it
 to your repo and remove `.git` directory from the cloned repo:
 
-### Install las Submodule
+### Install As Submodule
 
 ~~~bash
 cd ./my/project/workdir
