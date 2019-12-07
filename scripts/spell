@@ -50,6 +50,7 @@ make_dict() {
             rm "${dict}.prepl" 2>/dev/null
             aspell --dont-clean-words \
                 --lang=${lang} \
+                --encoding=utf-8 \
                 create master \
                 "${dict}.prepl" \
                 2>/dev/null < "${dict}"
@@ -62,7 +63,7 @@ spell_args() {
         hunspell)
             printf "%s" "-al -d ${lang} -p ${dict} -i utf-8";;
         aspell)
-            printf "%s" "-a -l ${lang} -p ${dict}.prepl--encoding=utf-8"
+            printf "%s" "-a -l ${lang} --extra-dicts=${dict}.prepl --encoding=utf-8"
             ;;
     esac
 }
