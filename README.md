@@ -21,6 +21,30 @@ manually.
 You may install this repository as a submodule of your repo or simply clone it
 to your repo and remove `.git` directory from the cloned repo:
 
+### Install las Submodule
+
+~~~bash
+cd ./my/project/workdir
+git submodule add https://github.com/Mikhus/.git-hooks.git
+./git-hooks/scripts/init
+git commit -am "chore: added .git-hooks as submodule to qualify commits"
+git push
+~~~
+
+Now anyone would be able to pull `.git-hooks` from your repo. If you want to
+rely on your personal hooks implementation, feel free to fork it and submodule
+from your own or organization fork, so you would be able to manage your own
+changes and still will have possibility to merge from a source repo if needed.
+
+When anyone is cloning your repository first, make sure adding `--recursive`
+option to clone command, as:
+
+~~~bash
+git clone --recursive [your_repo_url]
+~~~
+
+### Installing As Part of Your Repo
+
 ~~~bash
 cd ./my/project/workdir
 git clone git@github.com:Mikhus/.git-hooks.git
