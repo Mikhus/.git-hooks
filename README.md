@@ -121,7 +121,7 @@ under `script` directory
     of using it in other ways, or in another hooks? Examples:
     ~~~bash
     ./.git-hooks/scripts/spell "Wht wng with you?"
-    ./.git-hooks/scripts/version "$(git diff --cached | grep -e "^+[^+]")" "git"
+    ./.git-hooks/scripts/spell "$(git diff --cached | grep -e "^+[^+]")" "git"
     ~~~
   - `version` - assumes your git repository uses semantic version tagging
     for your releases. If so, may help to determine semantic version of
