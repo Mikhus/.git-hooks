@@ -26,7 +26,7 @@ to your repo and remove `.git` directory from the cloned repo:
 ~~~bash
 cd ./my/project/workdir
 git submodule add https://github.com/Mikhus/.git-hooks.git
-./git-hooks/scripts/init
+./.git-hooks/scripts/init
 git commit -am "chore: added .git-hooks as submodule to qualify commits"
 git push
 ~~~
@@ -48,8 +48,10 @@ git clone --recursive [your_repo_url]
 ~~~bash
 cd ./my/project/workdir
 git clone git@github.com:Mikhus/.git-hooks.git
-cd .git-hooks
-rm -rf .git
+rm -rf .git-hooks/.git
+./.git-hooks/scripts/init
+git commit -am "chore: added .git-hooks as submodule to qualify commits"
+git push
 ~~~
 
 Now you may commit and `.git-hooks` to your project repo to share it between
