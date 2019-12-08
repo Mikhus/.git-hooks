@@ -55,7 +55,7 @@ fi
 
 spell_check "${commit_message}"
 
-words_count=`wc -w <<< "${msg}"`; if [[ ${words_count} < ${min_words} ]]; then
+words_count=`wc -w <<< "${msg}"`; if (( ${words_count} < ${min_words} )); then
     echo "$(
         red)Error: Not enough words, please, describe your commit better...$(
         def)"
